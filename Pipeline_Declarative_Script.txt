@@ -1,0 +1,73 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git branch: 'dev', 
+                    url: 'https://github.com/Rahul637J/Fundoo_Notes.git'
+            }
+        }
+
+        stage('Sync to App Server') {
+            steps {
+                sh """
+                rsync -avz \$WORKSPACE ubuntu@172.31.31.129:/tmp/
+                """
+            }
+        }
+
+        stage('Setup Virtual Environment on App Server') {
+            steps {
+                sh """
+                ssh ubuntu@172.31.31.129 'bash -c "
+                    # Stop the application service
+                    sudo systemctl stop fundoonote.service
+
+                    # Copy files to the application directory
+                    cp -rfv /tmp/Fundoo-Note/* /home/ubuntu/FUNDOO-NOTES/
+
+                    # Activate virtual environment and install dependencies
+                    source /home/ubuntu/myenv/bin/activate
+                    pip install -r /home/ubuntu/FUNDOO-NOTES/requirements.txt
+                "'
+                """
+            }
+        }
+
+        stage('Apply Migrations on App Server') {
+            steps {
+                sh """
+                ssh ubuntu@172.31.31.129 'bash -c "
+                    source /home/ubuntu/myenv/bin/activate
+                    python /home/ubuntu/FUNDOO-NOTES/manage.py makemigrations
+                    python /home/ubuntu/FUNDOO-NOTES/manage.py migrate
+                "'
+                """
+            }
+        }
+
+        stage('Start Application') {
+            steps {
+                sh """
+                ssh ubuntu@172.31.31.129 'bash -c "
+                    sudo systemctl start fundoonote.service
+                    sudo systemctl status fundoonote.service
+                "'
+                """
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline execution completed.'
+        }
+        success {
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Please check the logs.'
+        }
+    }
+}
