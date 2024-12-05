@@ -1,0 +1,8 @@
+rsync -avz $WORKSPACE ubuntu@172.31.31.129:/tmp
+ssh ubuntu@172.31.31.129 'sudo systemctl stop fundoonote.service'
+ssh ubuntu@172.31.31.129 'cp -rfv /tmp/Fundoo-Note/* /home/ubuntu/FUNDOO-NOTES/'
+ssh ubuntu@172.31.31.129 'source myenv/bin/activate && pip install -r /home/ubuntu/FUNDOO-NOTES/requirements.txt'
+ssh ubuntu@172.31.31.129 'source /home/ubuntu/myenv/bin/activate && pip install -r /home/ubuntu/FUNDOO-NOTES/requirements.txt'
+ssh ubuntu@172.31.31.129 'source /home/ubuntu/myenv/bin/activate && python /home/ubuntu/FUNDOO-NOTES/manage.py makemigrations && python /home/ubuntu/FUNDOO-NOTES/manage.py migrate'
+ssh ubuntu@172.31.31.129 'sudo systemctl start fundoonote.service'
+ssh ubuntu@172.31.31.129 'sudo systemctl status fundoonote.service'
